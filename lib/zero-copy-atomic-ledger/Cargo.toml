@@ -7,3 +7,4 @@ edition = "2024"
 uuid = {workspace = true}
 anyhow = {workspace=true}
 thiserror = {workspace=true}
+tokio = { version = "1.49.0", features = ["full"] }

@@ -5,6 +5,7 @@ use std::{
 };
 
 use thiserror::Error;
+use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
 pub type Ids = [u8; 16];
@@ -44,6 +45,7 @@ pub enum Command {
         to: Ids,
         amount: AmountType,
     },
+    Shutdown,
 }
 
 impl FromStr for Command {
@@ -106,6 +108,7 @@ impl FromStr for Command {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Event {
     NewAccountAdded {
         id: Ids,
@@ -115,6 +118,7 @@ pub enum Event {
         to: Ids,
         amount: AmountType,
     },
+    Shutdown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -138,12 +142,14 @@ impl FromStr for Currency {
     }
 }
 
+#[derive(Debug)]
 pub struct UserAccount {
     account_id: Ids,
     currency: Currency,
     balance: AmountType,
 }
 
+#[derive(Debug)]
 pub struct Transaction {
     id: Ids,
     sender: Ids,
@@ -152,6 +158,7 @@ pub struct Transaction {
     currency: Currency,
 }
 
+#[derive(Debug)]
 pub struct Ledger {
     ledger_tx: HashMap<Ids, (Transaction, SystemTime)>,
     ledger_balance: HashMap<Ids, UserAccount>,
@@ -164,6 +171,7 @@ impl Ledger {
             ledger_balance: HashMap::new(),
         }
     }
+
     pub fn process_command(&mut self, cmd: Command) -> Result<Event, LedgerError> {
         match cmd {
             Command::CreateAccount {
@@ -225,8 +233,127 @@ impl Ledger {
                     return Err(LedgerError::AccountNotFound);
                 }
             }
+            Command::Shutdown => Ok(Event::Shutdown),
         }
     }
 }
 
-fn main() {}
+pub struct LedgerMessage {
+    command: Command,
+    responder: tokio::sync::oneshot::Sender<Result<Event, LedgerError>>,
+}
+async fn run_ledger(mut rx: mpsc::Receiver<LedgerMessage>) {
+    let mut ledger = Ledger::new();
+    let mut processing_id = 0;
+    while let Some(ledger_message) = rx.recv().await {
+        processing_id += 1;
+        let resp = ledger.process_command(ledger_message.command);
+        match ledger_message.responder.send(resp) {
+            Ok(_) => {
+                println!("Successfully 🎉 processed No: {processing_id}")
+            }
+            Err(err) => {
+                println!(
+                    "Failed 💀 while processing {processing_id} {:?}",
+                    ledger.ledger_balance
+                );
+                if let Ok(event) = err {
+                    if event == Event::Shutdown {
+                        println!("Ledger thread: exiting...");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let (tx, rx) = mpsc::channel(100);
+
+    let handler = tokio::spawn(run_ledger(rx));
+
+    let user1 = Command::CreateAccount {
+        account_id: Uuid::new_v4().as_bytes().clone(),
+        currency: Currency::USD,
+        starting_balance: 1000,
+    };
+    let (user1_tx, user1_rx) = oneshot::channel::<Result<Event, LedgerError>>();
+    let ledger_message_user1 = LedgerMessage {
+        command: user1,
+        responder: user1_tx,
+    };
+    if let Err(_) = tx.send(ledger_message_user1).await {
+        println!("failed to create user1");
+    }
+    let mut user1_id = [0u8; 16];
+    if let Ok(resp_user1) = user1_rx.await {
+        match resp_user1 {
+            Ok(event) => {
+                println!("🎉Successfull create user event {:?}", event);
+                match event {
+                    Event::NewAccountAdded { id } => user1_id = id,
+                    _ => println!("should never run"),
+                }
+            }
+            Err(err) => {
+                println!("💀Successfull create user event {}", err);
+            }
+        }
+    }
+
+    let user2 = Command::CreateAccount {
+        account_id: Uuid::new_v4().as_bytes().clone(),
+        currency: Currency::USD,
+        starting_balance: 1000,
+    };
+    let (user2_tx, user2_rx) = oneshot::channel::<Result<Event, LedgerError>>();
+    let ledger_message_user2 = LedgerMessage {
+        command: user2,
+        responder: user2_tx,
+    };
+    if let Err(_) = tx.send(ledger_message_user2).await {
+        println!("failed to create user2");
+    }
+    let mut user2_id = [0u8; 16];
+    if let Ok(resp_user2) = user2_rx.await {
+        match resp_user2 {
+            Ok(event) => {
+                println!("🎉Successfull create user event {:?}", event);
+                match event {
+                    Event::NewAccountAdded { id } => user2_id = id,
+                    _ => println!("should never run"),
+                }
+            }
+            Err(err) => {
+                println!("💀Successfull create user event {}", err);
+            }
+        }
+    }
+
+    let transction1 = Command::Transfer {
+        transaction_id: Uuid::new_v4().as_bytes().clone(),
+        from: user1_id,
+        to: user2_id,
+        amount: 500,
+    };
+    let (transction1_tx, transction1_rx) = oneshot::channel::<Result<Event, LedgerError>>();
+    let ledger_message_transction1 = LedgerMessage {
+        command: transction1,
+        responder: transction1_tx,
+    };
+    if let Err(_) = tx.send(ledger_message_transction1).await {
+        println!("failed to create transction1");
+    }
+    if let Ok(resp_transction1) = transction1_rx.await {
+        match resp_transction1 {
+            Ok(event) => {
+                println!("🎉Successfull first tx event {:?}", event);
+            }
+            Err(err) => {
+                println!("💀Successfull first tx err {}", err);
+            }
+        }
+    }
+}
