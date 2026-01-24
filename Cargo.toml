@@ -3,6 +3,11 @@ name = "rust-projects"
 version = "0.1.0"
 edition = "2024"
 
+[workspace.dependencies]
+uuid = { version = "1.19.0", features = ["atomic", "v4"] }
+anyhow = "1.0.100"
+thiserror = "2.0.18"
+
 [dependencies]
 
 
