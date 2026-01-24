@@ -6,3 +6,7 @@ edition = "2024"
 [dependencies]
 
 
+[workspace]
+members = [
+    "lib/zero-copy-atomic-ledger",
+]
