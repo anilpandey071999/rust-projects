@@ -13,5 +13,6 @@ thiserror = "2.0.18"
 
 [workspace]
 members = [
+    "lib/isolated-module",
     "lib/zero-copy-atomic-ledger",
 ]
