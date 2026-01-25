@@ -1,4 +1,5 @@
 mod async_mod;
+mod waterfall;
 
 fn main() {
     println!("Hello, world!");
