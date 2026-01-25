@@ -1,7 +1,8 @@
 use std::{
     collections::HashMap,
+    f64::consts::E,
     str::FromStr,
-    time::{self, SystemTime},
+    time::{self, Duration, SystemTime},
 };
 
 use thiserror::Error;
@@ -30,6 +31,10 @@ pub enum LedgerError {
     InvalidParsing(&'static str),
     #[error("Different Currency ")]
     DifferentCurrency,
+    #[error("Double-Spend")]
+    DoubleSpend,
+    #[error("LedgerError Timeout")]
+    Timeout,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -196,6 +201,9 @@ impl Ledger {
                 to,
                 amount,
             } => {
+                if self.ledger_tx.contains_key(&transaction_id) {
+                    return Err(LedgerError::DoubleSpend);
+                }
                 let sender_currency = if let Some(sender) = self.ledger_balance.get(&from) {
                     if sender.balance < amount {
                         return Err(LedgerError::InsufficientBalance);
@@ -225,7 +233,7 @@ impl Ledger {
                     let timestamp = time::SystemTime::now();
                     self.ledger_tx.insert(transaction_id, (tx, timestamp));
                 }
-                // match self.ledger_balance.get_mut(&to) {
+
                 if let Some(receiver) = self.ledger_balance.get_mut(&to) {
                     receiver.balance += amount;
                     return Ok(Event::MoneyTransfered { from, to, amount });
@@ -256,9 +264,15 @@ impl Bank {
         if let Err(_) = self.sender.send(ledger_message).await {
             return Err(LedgerError::InvalidCommand);
         }
-        match rx.await {
-            Ok(result) => result, // This is already Result<Event, LedgerError>
-            Err(_) => Err(LedgerError::InvalidCommand), // Handle oneshot cancellation
+        match tokio::time::timeout(Duration::from_secs(1), rx).await {
+            Ok(event) => {
+                if let Ok(event) = event {
+                    return event;
+                } else {
+                    Err(LedgerError::Timeout)
+                }
+            }
+            Err(_) => Err(LedgerError::Timeout),
         }
     }
 }
