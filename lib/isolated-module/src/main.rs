@@ -1,6 +1,7 @@
 mod async_mod;
 mod waterfall;
 mod decorator_pattern;
+mod state_machines;
 
 fn main() {
     println!("Hello, world!");

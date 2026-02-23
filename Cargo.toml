@@ -12,7 +12,7 @@ thiserror = "2.0.18"
 
 
 [workspace]
-members = [
+members = ["lib/file-io",
     "lib/isolated-module",
     "lib/zero-copy-atomic-ledger",
 ]
