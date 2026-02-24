@@ -13,5 +13,5 @@ thiserror = "2.0.18"
 
 [workspace]
 members = [
-    "lib/zero-copy-atomic-ledger",
+    "lib/zero-copy-atomic-ledger", "lib/zero-copy-log-storage",
 ]

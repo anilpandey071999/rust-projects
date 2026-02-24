@@ -456,3 +456,7 @@ dependencies = [
  "tokio",
  "uuid",
 ]
+
+[[package]]
+name = "zero-copy-log-storage"
+version = "0.1.0"
