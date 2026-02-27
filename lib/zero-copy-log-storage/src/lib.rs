@@ -1,3 +1,4 @@
+pub mod log_snapshot;
 pub mod log_store;
 
 pub fn add(left: u64, right: u64) -> u64 {
