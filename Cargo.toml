@@ -12,6 +12,6 @@ thiserror = "2.0.18"
 
 
 [workspace]
-members = [
+members = ["lib/list-stack-queue",
     "lib/zero-copy-atomic-ledger", "lib/zero-copy-log-storage",
 ]
