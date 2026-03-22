@@ -30,7 +30,12 @@ impl List {
         self.head = Some(new_node)
     }
 
-    fn pop(&mut self) -> Option<i32> {
+    fn peek(&self) -> Option<&T> {
+        self.head.as.map(|node| {
+            &node.elem
+        })
+    }
+    fn pop(&mut self) -> Option<T> {
         self.head.take().map(|node| {
             self.head = node.next;
             node.elem
