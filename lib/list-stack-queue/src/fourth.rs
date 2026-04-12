@@ -1,4 +1,4 @@
-use std::cell::{Ref, RefCell};
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
 #[derive(Default)]
@@ -104,6 +104,18 @@ impl<T> List<T> {
         self.tail
             .as_ref()
             .map(|node| Ref::map(node.borrow(), |node| &node.elem))
+    }
+
+    pub fn peek_front_mut(&mut self) -> Option<RefMut<'_, T>> {
+        self.head
+            .as_mut()
+            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.elem))
+    }
+
+    pub fn peek_back_mut(&mut self) -> Option<RefMut<'_, T>> {
+        self.tail
+            .as_mut()
+            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.elem))
     }
 }
 
