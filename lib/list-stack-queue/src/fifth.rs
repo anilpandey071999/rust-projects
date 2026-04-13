@@ -1,6 +1,6 @@
-pub struct List<'a, T> {
+pub struct List<T> {
     head: Link<T>,
-    tail: Option<&'a mut Node<T>>,
+    tail: *mut Node<T>,
 }
 
 type Link<T> = Option<Box<Node<T>>>;
@@ -10,7 +10,7 @@ struct Node<T> {
     next: Link<T>,
 }
 
-impl<'a, T> List<'a, T> {
+impl<T> List<T> {
     pub fn new() -> Self {
         Self {
             head: None,
@@ -18,7 +18,7 @@ impl<'a, T> List<'a, T> {
         }
     }
 
-    pub fn push(&'a mut self, elem: T) {
+    pub fn push(&mut self, elem: T) {
         let new_tail = Box::new(Node { elem, next: None });
 
         let new_tail = match self.tail.take() {
@@ -33,5 +33,60 @@ impl<'a, T> List<'a, T> {
         };
 
         self.tail = new_tail;
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        // let node = self.head.take();
+        // match node {
+        //     Some(mut node) => {
+        //         self.head = node.next.take();
+        //         Some(node.elem)
+        //     }
+        //     None => self.tail = None,
+        // }
+        // self.head = node.unwrap().next;
+        self.head.take().map(|head| {
+            let head = *head;
+            self.head = head.next;
+
+            if self.head.is_none() {
+                self.tail = None;
+            }
+
+            head.elem
+        })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::List;
+    #[test]
+    fn basics() {
+        let mut list = List::new();
+
+        // Check empty list behaves right
+        assert_eq!(list.pop(), None);
+
+        // Populate list
+        list.push(1);
+        list.push(2);
+        list.push(3);
+
+        // Check normal removal
+        assert_eq!(list.pop(), Some(1));
+        assert_eq!(list.pop(), Some(2));
+
+        // Push some more just to make sure nothing's corrupted
+        list.push(4);
+        list.push(5);
+
+        // Check normal removal
+        assert_eq!(list.pop(), Some(3));
+        assert_eq!(list.pop(), Some(4));
+
+        // Check exhaustion
+        assert_eq!(list.pop(), Some(5));
+        assert_eq!(list.pop(), None);
     }
 }
