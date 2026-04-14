@@ -1,3 +1,5 @@
+use std::ptr::null_mut;
+
 pub struct List<T> {
     head: Link<T>,
     tail: *mut Node<T>,
@@ -14,45 +16,33 @@ impl<T> List<T> {
     pub fn new() -> Self {
         Self {
             head: None,
-            tail: None,
+            tail: null_mut(),
         }
     }
 
     pub fn push(&mut self, elem: T) {
-        let new_tail = Box::new(Node { elem, next: None });
+        let mut new_node = Box::new(Node { elem, next: None });
 
-        let new_tail = match self.tail.take() {
-            Some(old_tail) => {
-                old_tail.next = Some(new_tail);
-                old_tail.next.as_deref_mut()
-            }
-            None => {
-                self.head = Some(new_tail);
-                self.head.as_deref_mut()
-            }
-        };
+        let raw_tail: *mut _ = &mut *new_node;
 
-        self.tail = new_tail;
+        if !self.tail.is_null() {
+            unsafe {
+                (*self.tail).next = Some(new_node);
+            }
+        } else {
+            self.head = Some(new_node);
+        }
+
+        self.tail = raw_tail;
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        // let node = self.head.take();
-        // match node {
-        //     Some(mut node) => {
-        //         self.head = node.next.take();
-        //         Some(node.elem)
-        //     }
-        //     None => self.tail = None,
-        // }
-        // self.head = node.unwrap().next;
         self.head.take().map(|head| {
             let head = *head;
             self.head = head.next;
-
             if self.head.is_none() {
-                self.tail = None;
+                self.tail = null_mut();
             }
-
             head.elem
         })
     }
@@ -87,6 +77,15 @@ mod test {
 
         // Check exhaustion
         assert_eq!(list.pop(), Some(5));
+        assert_eq!(list.pop(), None);
+
+        // Check the exhaustion case fixed the pointer right
+        list.push(6);
+        list.push(7);
+
+        // Check normal removal
+        assert_eq!(list.pop(), Some(6));
+        assert_eq!(list.pop(), Some(7));
         assert_eq!(list.pop(), None);
     }
 }
