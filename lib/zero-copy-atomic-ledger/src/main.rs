@@ -1,6 +1,6 @@
+#![allow(unused)]
 use std::{
     collections::HashMap,
-    f64::consts::E,
     str::FromStr,
     time::{self, Duration, SystemTime},
 };
