@@ -1,5 +1,5 @@
+use std::cell;
 use std::ptr::null_mut;
-
 pub struct List<T> {
     head: Link<T>,
     tail: *mut Node<T>,
@@ -50,6 +50,18 @@ impl<T> List<T> {
 
 #[cfg(test)]
 mod test {
+    use std::{
+        cell::{Cell, RefCell},
+        collections::HashMap,
+        rc::Rc,
+        sync::{
+            Arc, Mutex,
+            atomic::{AtomicI32, Ordering::Relaxed},
+            mpsc,
+        },
+        thread::spawn,
+    };
+
     use super::List;
     #[test]
     fn basics() {
@@ -87,5 +99,92 @@ mod test {
         assert_eq!(list.pop(), Some(6));
         assert_eq!(list.pop(), Some(7));
         assert_eq!(list.pop(), None);
+    }
+
+    #[test]
+    fn test_push_pop() {
+        assert_eq!((3.14 + 1e20) - 1e20, 3.14);
+    }
+
+    #[test]
+    fn test_cell() {
+        let hashcell = Rc::new(RefCell::new(HashMap::new()));
+        {
+            let mut map = hashcell.borrow_mut();
+            map.insert("key1", 10);
+            map.insert("key2", 10);
+            map.insert("key3", 10);
+        }
+        let total: i32 = hashcell.borrow().values().sum();
+        println!("total: {total}");
+        let a = Cell::new("g".to_uppercase().to_string());
+        // let b = a.get();
+    }
+    #[test]
+    fn cunter_rust_arc() {
+        let count: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
+        let mut handles = vec![];
+        for _ in 0..3 {
+            let count_clone = count.clone();
+            let h = spawn(move || {
+                let mut a = count_clone.lock().expect("");
+                *a += 1;
+            });
+            handles.push(h);
+        }
+        for h in handles {
+            h.join().expect("Thread panicked");
+        }
+
+        // 7. Verify the final value is 3
+        assert_eq!(*count.lock().unwrap(), 3);
+    }
+
+    fn increatment(tx: mpsc::Sender<i32>, range: i32) {
+        let mut counter = 0;
+        for _ in 0..range {
+            counter += 1;
+        }
+        tx.send(counter).unwrap();
+    }
+    #[test]
+    fn cunter_rust_channel() {
+        let target = 10_000;
+        let (sender, rev) = mpsc::channel();
+        let mut handles = vec![];
+        for _ in 0..4 {
+            let sender_clone = sender.clone();
+            let h = spawn(move || {
+                increatment(sender_clone, target / 4);
+            });
+            handles.push(h);
+        }
+        drop(sender);
+
+        for h in handles {
+            h.join().unwrap();
+        }
+        let sums: i32 = rev.iter().sum();
+        println!("{sums}: {target}")
+    }
+
+    #[test]
+    fn counter_atomic() {
+        let target = 10_000;
+        let counter = Arc::new(AtomicI32::new(0));
+        let mut handler = vec![];
+        for _ in 0..4 {
+            let cunter_clone = counter.clone();
+            let h = spawn(move || {
+                for _ in 0..target / 4 {
+                    cunter_clone.fetch_add(1, Relaxed);
+                }
+            });
+            handler.push(h);
+        }
+        for h in handler {
+            h.join().unwrap()
+        }
+        println!("{}: {target}", counter.load(Relaxed))
     }
 }
