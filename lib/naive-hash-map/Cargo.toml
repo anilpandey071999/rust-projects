@@ -1,0 +1,39 @@
+[package]
+name = "naive-hash-map"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rand = "0.4.2"
+
+[dev-dependencies]
+quickcheck = "0.6"
+criterion = "0.1"
+
+# [[bench]]
+# name = "naive"
+# harness = false
+
+# [[bin]]
+# name = "naive_interpreter"
+# doc = false
+#
+# [[bin]]
+# name = "standard"
+# doc = false
+#
+# [[bin]]
+# name = "naive"
+# doc = false
+#
+# [[bench]]
+# name = "specialized"
+# harness = false
+#
+# [[bin]]
+# name = "specialized_interpreter"
+# doc = false
+
+[[bin]]
+name = "specialized"
+doc = false
