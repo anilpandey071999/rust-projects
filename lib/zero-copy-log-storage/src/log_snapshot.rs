@@ -1,14 +1,14 @@
 use crate::log_store::LogStore;
 
 pub struct LogSnapShot<'a> {
-    store: &'a LogStore,
+    _store: &'a LogStore,
     visible_entries: usize,
 }
 
 impl<'a> LogSnapShot<'a> {
-    pub fn new(store: &'a LogStore, visible_entries: usize) -> Self {
+    pub fn new(_store: &'a LogStore, visible_entries: usize) -> Self {
         Self {
-            store,
+            _store,
             visible_entries,
         }
     }

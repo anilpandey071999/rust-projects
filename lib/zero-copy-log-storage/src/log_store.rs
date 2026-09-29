@@ -1,5 +1,5 @@
 use crate::log_snapshot::LogSnapShot;
-use std::{cell::UnsafeCell, fs::Metadata, mem::MaybeUninit, sync::atomic::AtomicUsize};
+use std::{cell::UnsafeCell, sync::atomic::AtomicUsize};
 
 const MAX_ENTRIES: usize = 1_000_000;
 const MAX_DATA_BYTES: usize = 10_000_000;

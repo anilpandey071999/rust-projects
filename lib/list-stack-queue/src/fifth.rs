@@ -1,4 +1,3 @@
-use std::cell;
 use std::ptr::null_mut;
 pub struct List<T> {
     head: Link<T>,
@@ -117,7 +116,7 @@ mod test {
         }
         let total: i32 = hashcell.borrow().values().sum();
         println!("total: {total}");
-        let a = Cell::new("g".to_uppercase().to_string());
+        let _a = Cell::new("g".to_uppercase().to_string());
         // let b = a.get();
     }
     #[test]
